@@ -12,7 +12,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
-      - run: flutter create .
+      - run: flutter create --project-name hajeri_book .
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
