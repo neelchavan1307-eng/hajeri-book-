@@ -3,8 +3,9 @@ void main()=>runApp(MaterialApp(home:MusterBook(),debugShowCheckedModeBanner:fal
 
 class Worker{
   String no, name;
-  List<String> top = List.filled(31, "");
-  List<String> bottom = List.filled(31, "");
+  List<String> top = List.filled(31, ""); // P, C OFF
+  List<String> mid = List.filled(31, ""); // Sunday tarikh, I II
+  List<String> bus = List.filled(31, ""); // BUS LATE + Time
   Worker(this.no,this.name);
 }
 
@@ -17,54 +18,49 @@ class _MusterBookState extends State<MusterBook>{
   ];
   Set<int> sundays = {7,14,21,28};
 
-  int getNextSunday(int currentDayIndex){
-    int day = currentDayIndex + 1;
+  int getNextSunday(int di){
+    int day = di + 1;
     for(int s in sundays){ if(s > day) return s; }
-    return day+1; // last
+    return day+1;
   }
 
   void editCell(int wi, int di){
     var topCtrl = TextEditingController(text: workers[wi].top[di]);
-    var bottomCtrl = TextEditingController(text: workers[wi].bottom[di]);
+    var midCtrl = TextEditingController(text: workers[wi].mid[di]);
+    var busCtrl = TextEditingController(text: workers[wi].bus[di]);
     int nextSun = getNextSunday(di);
     
     showDialog(context:context, builder:(_)=>AlertDialog(
       title: Text("${workers[wi].name.split("\n")[0]} - ${di+1} तारीख"),
       content: SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min, crossAxisAlignment:CrossAxisAlignment.start, children:[
-        Text("VAR - C OFF / P / PL", style:TextStyle(fontWeight:FontWeight.bold, fontSize:12)),
-        TextField(controller: topCtrl, onChanged: (v){
-          if(v.toUpperCase().contains("C OFF") || v.toUpperCase().contains("OFF")){
-            if(bottomCtrl.text.isEmpty){
-              bottomCtrl.text = "$nextSun";
-            }
-          }
-        }, decoration:InputDecoration(hintText:'P, PL, C OFF, 6 OFF', border:OutlineInputBorder())),
-        SizedBox(height:5),
-        Wrap(spacing:4, runSpacing:4, children: ["P","PL","CL","C OFF","6 OFF","BUS LATE","BUS LATE 11.50"].map((e)=>ActionChip(label:Text(e, style:TextStyle(fontSize:10)), onPressed:(){
+        Text("1) VAR - Hajeri / C OFF", style:TextStyle(fontWeight:FontWeight.bold, fontSize:11)),
+        TextField(controller: topCtrl, decoration:InputDecoration(hintText:'P, C OFF', border:OutlineInputBorder(), isDense:true)),
+        Wrap(spacing:4, children: ["P","PL","CL","C OFF","6 OFF"].map((e)=>ActionChip(label:Text(e, style:TextStyle(fontSize:10)), onPressed:(){
           topCtrl.text=e;
-          // AUTO SUNDAY
-          if(e.contains("OFF")){
-            bottomCtrl.text = "$nextSun";
-            setState((){}); // refresh dialog text
-          }
+          if(e.contains("OFF")) midCtrl.text="$nextSun";
         })).toList()),
         
-        SizedBox(height:14),
-        Text("KHALI - Sunday tarikh / Shift (EDIT karu shakta)", style:TextStyle(fontWeight:FontWeight.bold, fontSize:12, color:Colors.blue.shade800)),
+        SizedBox(height:10),
+        Text("2) MADHE - Sunday Tarikh / Shift (AUTO+EDIT)", style:TextStyle(fontWeight:FontWeight.bold, fontSize:11, color:Colors.blue.shade800)),
         Row(children:[
-          Expanded(child:TextField(controller: bottomCtrl, decoration:InputDecoration(hintText:'Sunday tarikh - 7, 14...', border:OutlineInputBorder(), suffixIcon:Icon(Icons.edit)))),
-          SizedBox(width:6),
-          FilledButton.tonal(onPressed:(){ bottomCtrl.text="$nextSun"; }, child:Text("S $nextSun", style:TextStyle(fontSize:11)))
+          Expanded(child:TextField(controller: midCtrl, decoration:InputDecoration(hintText:'7, I, II', border:OutlineInputBorder(), isDense:true))),
+          SizedBox(width:4),
+          FilledButton.tonal(onPressed:(){midCtrl.text="$nextSun";}, child:Text("S $nextSun", style:TextStyle(fontSize:10)))
         ]),
-        SizedBox(height:5),
-        Wrap(spacing:4, children: ["I","II","III","7","14","21","28","7/16","11.50"].map((e)=>ActionChip(label:Text(e, style:TextStyle(fontSize:10)), onPressed:(){bottomCtrl.text=e;})).toList(),
+        Wrap(spacing:4, children: ["I","II","III","7","14","21"].map((e)=>ActionChip(label:Text(e, style:TextStyle(fontSize:10)), onPressed:(){midCtrl.text=e;})).toList()),
+
+        SizedBox(height:10),
+        Text("3) KHALI NAVIN - BUS LATE + TIMING", style:TextStyle(fontWeight:FontWeight.bold, fontSize:11, color:Colors.red.shade800)),
+        TextField(controller: busCtrl, decoration:InputDecoration(hintText:'BUS LATE 11.50, 7/16', border:OutlineInputBorder(), isDense:true, suffixIcon:Icon(Icons.directions_bus, size:18))),
+        Wrap(spacing:4, children: ["BUS LATE","BUS LATE 11.50","11.50","7/16","LATE"].map((e)=>ActionChip(label:Text(e, style:TextStyle(fontSize:10)), onPressed:(){busCtrl.text=e;})).toList()),
       ])),
       actions:[
         TextButton(onPressed:()=>Navigator.pop(context), child:Text("Cancel")),
         FilledButton(onPressed:(){
           setState((){
             workers[wi].top[di]=topCtrl.text;
-            workers[wi].bottom[di]=bottomCtrl.text; // EDITABLE
+            workers[wi].mid[di]=midCtrl.text;
+            workers[wi].bus[di]=busCtrl.text;
           });
           Navigator.pop(context);
         }, child:Text("SAVE"))
@@ -72,35 +68,40 @@ class _MusterBookState extends State<MusterBook>{
     ));
   }
 
-  Widget cell(String txt, {double w=28, Color? bg, bool bold=false, double h=40}){
-    return Container(width:w, height:h, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6,color:Colors.black), color:bg), child:Text(txt, style:TextStyle(fontSize:10, fontWeight: bold?FontWeight.bold:FontWeight.normal), textAlign:TextAlign.center));
+  Widget hCell(String txt, {double w=40, Color? bg}){
+    return Container(width:w, height:45, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6,color:Colors.black), color:bg), child:Text(txt, style:TextStyle(fontSize:10, fontWeight:FontWeight.bold), textAlign:TextAlign.center));
   }
 
   @override
   Widget build(BuildContext context){
     return Scaffold(
-      appBar: AppBar(title: Text("हजेरी बुक - MONTHLY MUSTER BOOK June 2026", style:TextStyle(fontWeight:FontWeight.bold, fontSize:13, color:Colors.black)), backgroundColor:Colors.white),
+      appBar: AppBar(title: Text("हजेरी बुक - MUSTER BOOK June 2026", style:TextStyle(fontWeight:FontWeight.bold, fontSize:13, color:Colors.black)), backgroundColor:Colors.white),
       body: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Column(children:[
           Row(children:[
-            cell("No.\nनंबर", w:40, h:45, bold:true, bg:Colors.grey.shade300),
-            cell("Name\nनाव", w:130, h:45, bold:true, bg:Colors.grey.shade300),
-            ...List.generate(30, (i){int d=i+1; bool isSun=sundays.contains(d); return cell("${isSun?"S":""}\n$d", w:52, h:45, bold:true, bg:isSun?Colors.yellow.shade300:Colors.grey.shade300);}),
+            hCell("No.", w:40, bg:Colors.grey.shade300),
+            hCell("Name", w:130, bg:Colors.grey.shade300),
+            ...List.generate(30, (i){int d=i+1; bool isSun=sundays.contains(d); return hCell("${isSun?"S":""}\n$d", w:60, bg:isSun?Colors.yellow.shade300:Colors.grey.shade300);}),
           ]),
           ...workers.asMap().entries.map((entry){
             int wi=entry.key; var w=entry.value;
             return Row(children:[
-              cell(w.no, w:40, h:72),
-              Container(width:130, height:72, decoration:BoxDecoration(border:Border.all(width:0.6)), padding:EdgeInsets.all(4), child:Text(w.name, style:TextStyle(fontSize:11))),
+              Container(width:40, height:108, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6)), child:Text(w.no)),
+              Container(width:130, height:108, decoration:BoxDecoration(border:Border.all(width:0.6)), padding:EdgeInsets.all(4), child:Text(w.name, style:TextStyle(fontSize:11))),
               ...List.generate(30, (di){
                 return Column(children:[
-                  GestureDetector(onTap:()=>editCell(wi, di), child:Container(width:52, height:36, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6), color: w.top[di].contains("OFF")?Colors.purple.shade100 : w.top[di].contains("PL")?Colors.orange.shade100 : w.top[di]=="P"?Colors.green.shade100 : Colors.white), child:Text(w.top[di], style:TextStyle(fontSize:9, fontWeight:FontWeight.bold), textAlign:TextAlign.center))),
-                  GestureDetector(onTap:()=>editCell(wi, di), child:Container(width:52, height:36, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6), color: w.bottom[di].isNotEmpty? Colors.yellow.shade100 : Colors.grey.shade100), child: Row(mainAxisAlignment:MainAxisAlignment.center, children:[Text(w.bottom[di], style:TextStyle(fontSize:10)), if(w.bottom[di].isNotEmpty && int.tryParse(w.bottom[di])!=null) Icon(Icons.edit, size:8)]) )),
+                  // 1 VAR
+                  GestureDetector(onTap:()=>editCell(wi, di), child:Container(width:60, height:36, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6), color: w.top[di].contains("OFF")?Colors.purple.shade100 : w.top[di]=="P"?Colors.green.shade100 : Colors.white), child:Text(w.top[di], style:TextStyle(fontSize:9, fontWeight:FontWeight.bold), textAlign:TextAlign.center))),
+                  // 2 MADHE
+                  GestureDetector(onTap:()=>editCell(wi, di), child:Container(width:60, height:36, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6), color: w.mid[di].isNotEmpty? Colors.yellow.shade100 : Colors.grey.shade100), child:Text(w.mid[di], style:TextStyle(fontSize:9), textAlign:TextAlign.center))),
+                  // 3 KHALI NAVIN - BUS LATE
+                  GestureDetector(onTap:()=>editCell(wi, di), child:Container(width:60, height:36, alignment:Alignment.center, decoration:BoxDecoration(border:Border.all(width:0.6), color: w.bus[di].contains("BUS")?Colors.red.shade100 : Colors.orange.shade50), child:Text(w.bus[di], style:TextStyle(fontSize:8, fontWeight:FontWeight.bold, color:Colors.red.shade800), textAlign:TextAlign.center, maxLines:2))),
                 ]);
               }),
             ]);
           }).toList(),
+          Padding(padding:EdgeInsets.all(8), child:Text("VAR=P/C OFF | MADHE=Sunday Tarikh I/II | KHALI=BUS LATE + Time", style:TextStyle(fontSize:10))),
         ]),
       ),
       floatingActionButton: FloatingActionButton.extended(backgroundColor:Colors.orange, onPressed:(){
@@ -109,4 +110,4 @@ class _MusterBookState extends State<MusterBook>{
       }, label:Text("Add New Name", style:TextStyle(color:Colors.white)), icon:Icon(Icons.person_add, color:Colors.white)),
     );
   }
-        }
+}
